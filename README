@@ -54,6 +54,21 @@ predicate returns true.
 
 See src/erlami_example.erl for a detailed example.
 
+Filtering Events
+----------------
+You can use the predicate to filter which events you want to listen for. For
+example, this will only listen for events that *are not* DTMF:
+
+erlami_client:register_listener(
+    ServerName, {
+        fun event_callback/2,
+        fun(Event) ->
+            {ok, Value} = erlami_message:get(Event, "event"),
+            Value =/= "DTMF" end
+        end
+    }).
+
+
 Sending actions
 ---------------
 Action = erlami_message:new_action("CoreShowChannels"),
