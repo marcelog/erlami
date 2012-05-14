@@ -1,0 +1,1 @@
+-record(erlami_message, {attributes, variables}).

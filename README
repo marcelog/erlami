@@ -1,0 +1,81 @@
+Introduction
+------------
+This is an application for erlang/otp suited to monitor asterisk installations.
+
+It has 1 top-level supervisor that spawns a worker for each one of the asterisk
+boxes you configure.
+
+License
+-------
+erlami is under the Apache License 2.0. See the LICENSE file
+for more details.
+
+Configuring
+-----------
+See rel/files/sys.config for an example configuration. Here's a snippet:
+{erlami, [
+    {servers, [
+        {asterisk1, [                 % The server name is an atom
+            {transport, tcp},         % ssl or tcp
+            {host, "1.1.1.1"},
+            {port, 5038},
+            {username, "username"},
+            {secret, "secret"}
+        ]},
+        {asterisk2, [
+            {transport, ssl},
+            {host, "2.2.2.2"},
+            {port, 5039},
+            {username, "username"},
+            {secret, "secret"}
+        ]}
+    ]}
+]}.
+
+Listening for events
+--------------------
+erlami_client:register_listener(
+    ServerName, {fun event_callback/2, fun(_) -> true end}
+).
+
+The 1st argument is the server name configured in the application, meaning
+you are interested in listening for events coming in from that specific server.
+
+The 2nd argument is a fun, which is called for every event received. This
+fun should accept 2 arguments, a servername (atom) and the event. You can
+manipulate the event with the functions in the erlami_message module.
+
+The 3rd argument is the predicate, which will receive the event so it can
+process it, returning true or false. The event_callback is called only if the
+predicate returns true.
+
+See src/erlami_example.erl for a detailed example.
+
+Sending actions
+---------------
+Action = erlami_message:new_action("CoreShowChannels"),
+erlami_client:send_action(ServerName, Action, fun response_callback/2).
+
+The response_callback is invoked when the response for the action is received.
+The 1st argument passed to it is the response itself, and the 2nd argument is
+the list of associated events for that response.
+
+See src/erlami_example.erl for a detailed example.
+
+OTP
+---
+erlami is the name of the included OTP application. Just start is as
+any other application, like:
+
+1> application:start(erlami).
+
+The application will start a supervisor, that has 1 supervisor per configured
+asterisk server.
+
+Compiling
+---------
+Just type make in the top level directory. The .beam files will
+be generated in the ebin/ directory. The Makefile contains the correct
+rebar commands to run.
+
+
