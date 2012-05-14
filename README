@@ -2,6 +2,9 @@ Introduction
 ------------
 This is an application for erlang/otp suited to monitor asterisk installations.
 
+A PHP version is available at http://marcelog.github.com/PAMI
+A NodeJs version is available at http://marcelog.github.com/Nami
+
 It has 1 top-level supervisor that spawns a worker for each one of the asterisk
 boxes you configure.
 
