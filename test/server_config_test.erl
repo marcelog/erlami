@@ -26,7 +26,7 @@ can_get_username(SetupData) ->
 can_get_secret(SetupData) ->
     ?_assertEqual(erlami_server_config:extract_secret(SetupData), "secret").
 
-some_tricky_test_() ->
+server_config_test_() ->
     {setup,
         fun start/0,
         fun stop/1,
