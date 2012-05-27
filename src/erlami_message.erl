@@ -181,14 +181,8 @@ set_all_variables(#erlami_message{} = Message, Variables) ->
 ) -> string().
 marshall(#erlami_message{attributes=Attributes, variables=Variables}) ->
     MarshalledAtts = dict:fold(fun ?MODULE:marshall/3, "", Attributes),
-    Msg = case dict:size(Variables) of
-        0 -> MarshalledAtts;
-        _ ->
-            MarshalledVars = dict:fold(
-                fun ?MODULE:marshall_variable/3, "", Variables
-            ),
-            lists:append(MarshalledAtts, MarshalledVars)
-    end,
+    MarshalledVars = dict:fold(fun ?MODULE:marshall_variable/3, "", Variables),
+    Msg = lists:append(MarshalledAtts, MarshalledVars),
     string:concat(Msg, ?EOL).
 
 %% @doc Given an attribute and its value, will return their text
@@ -234,14 +228,7 @@ unmarshall(Text) ->
                 both, 32
             )),
             Value = string:strip(string:substr(Line, Pos + 1), both, 32),
-            case string:str(Key, "Variable") of
-                0 -> erlami_message:set(Acc, Key, Value);
-                _ ->
-                    VarNamePos = string:str(Value, "="),
-                    VarName = string:substr(Value, 1, VarNamePos - 1),
-                    VarValue = string:substr(Value, VarNamePos + 1),
-                    erlami_message:set_variable(Acc, VarName, VarValue)
-            end
+            erlami_message:set(Acc, Key, Value)
         end,
         Message,
         Lines

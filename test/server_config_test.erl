@@ -12,19 +12,19 @@ stop(_SetupData) ->
     ok.
 
 can_get_host(SetupData) ->
-    ?_assertEqual(erlami_server_config:extract_host(SetupData), "127.0.0.1").
+    ?_assertEqual("127.0.0.1", erlami_server_config:extract_host(SetupData)).
 
 can_get_port(SetupData) ->
-    ?_assertEqual(erlami_server_config:extract_port(SetupData), 5039).
+    ?_assertEqual(5039, erlami_server_config:extract_port(SetupData)).
 
 can_get_transport(SetupData) ->
-    ?_assertEqual(erlami_server_config:extract_transport(SetupData), ssl).
+    ?_assertEqual(ssl, erlami_server_config:extract_transport(SetupData)).
 
 can_get_username(SetupData) ->
-    ?_assertEqual(erlami_server_config:extract_username(SetupData), "username").
+    ?_assertEqual("username", erlami_server_config:extract_username(SetupData)).
 
 can_get_secret(SetupData) ->
-    ?_assertEqual(erlami_server_config:extract_secret(SetupData), "secret").
+    ?_assertEqual("secret", erlami_server_config:extract_secret(SetupData)).
 
 server_config_test_() ->
     {setup,
