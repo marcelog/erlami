@@ -26,7 +26,8 @@
         sasl,
         crypto,
         public_key,
-        ssl
+        ssl,
+        lager
     ]},
     {mod, { erlami_app, []}},
     {env, []}
