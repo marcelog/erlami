@@ -91,13 +91,11 @@ get_worker_name(AsteriskServerName) ->
 %% gen_fsm Function Definitions
 %% ------------------------------------------------------------------
 init({ServerName, WorkerName, ServerInfo}) ->
-    Reader = erlami_reader:start_link(WorkerName),
     ConnModule = erlami_server_config:extract_connection(ServerInfo),
     Host = erlami_server_config:extract_host(ServerInfo),
     Port = erlami_server_config:extract_port(ServerInfo),
-    {ok, Conn} = erlang:apply(
-        ConnModule, open, [Host, Port, Reader]
-    ),
+    {ok, Conn} = erlang:apply(ConnModule, open, [Host, Port]),
+    _Reader = erlami_reader:start_link(WorkerName, Conn),
     {ok, wait_salutation, #clientstate{
         name=ServerName, serverinfo=ServerInfo,
         listeners=[], actions=[], connection=Conn

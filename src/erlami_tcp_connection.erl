@@ -28,19 +28,22 @@
 %% ------------------------------------------------------------------
 %% API Function Exports
 %% ------------------------------------------------------------------
--export([open/3, send/2, close/1]).
+-export([open/2, read_line/2, send/2, close/1]).
 
 %% @doc Will resolve and try to establish a connection to an asterisk box.
 -spec open(
-    Host::inet:hostname(), Port::inet:port_number(), Reader::pid()
+    Host::inet:hostname(), Port::inet:port_number()
 ) -> {ok, gen_tcp:socket()}.
-open(Host, Port, Reader) ->
+open(Host, Port) ->
     {ok, #hostent{h_addr_list=Addresses}}
         = erlami_connection:resolve_host(Host),
-    {ok, Socket} = real_connect(Addresses, Port, Reader),
+    {ok, Socket} = real_connect(Addresses, Port),
     {ok, #erlami_connection{
         send = fun(Data) ->
             ?MODULE:send(Socket, Data)
+        end,
+        read_line = fun(Timeout) ->
+            ?MODULE:read_line(Socket, Timeout)
         end,
         close = fun() ->
             ?MODULE:close(Socket)
@@ -53,23 +56,21 @@ open(Host, Port, Reader) ->
 %% can be established or when failed after trying each one of the addresses
 %% found.
 -spec real_connect(
-    [Host::inet:hostname()], Port::inet:port_number(), Reader::pid()
+    [Host::inet:hostname()], Port::inet:port_number()
 ) -> {ok, gen_tcp:socket()}.
-real_connect([], _Port, _Reader) ->
+real_connect([], _Port) ->
     outofaddresses;
 
-real_connect([Address|Tail], Port, Reader) ->
-    case gen_tcp:connect(Address, Port, [{packet, line}, {active, false}]) of
+real_connect([Address|Tail], Port) ->
+    case gen_tcp:connect(Address, Port, [{active, false}, {packet, line}]) of
         {ok, Socket} ->
-            ok = gen_tcp:controlling_process(Socket, Reader),
-            ok = inet:setopts(Socket, [{active, true}]),
             {ok, Socket};
-        _ -> real_connect(Tail, Port, Reader)
+        _ -> real_connect(Tail, Port)
     end.
 
 %% @doc Used to send an action() via a tcp or tcp+ssl socket, selected by
 %% pattern matching.
--spec send(gen_tcp:socket(), Action::erlami_message:action()) -> ok.
+-spec send(Socket::gen_tcp:socket(), Action::erlami_message:action()) -> ok.
 send(Socket, Action) ->
     ok = gen_tcp:send(Socket, erlami_message:marshall(Action)).
 
@@ -77,3 +78,10 @@ send(Socket, Action) ->
 -spec close(gen_tcp:socket()) -> ok.
 close(Socket) ->
     ok = gen_tcp:close(Socket).
+
+%% @doc Used to get 1 line from AMI server.
+-spec read_line(
+    Socket::gen_tcp:socket(), Timeout::integer()
+) -> {ok, Line::string()} | {error, Reason::term()}.
+read_line(Socket, Timeout) ->
+    gen_tcp:recv(Socket, 0, Timeout).

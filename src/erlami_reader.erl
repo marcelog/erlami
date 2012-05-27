@@ -21,34 +21,43 @@
 -github("https://github.com/marcelog").
 -homepage("http://marcelog.github.com/").
 -license("Apache License 2.0").
--export([start_link/1]).
+-export([start_link/2]).
+-include_lib("erlami_connection.hrl").
 
 %%% @doc Starts an erlami_reader. The argument ErlamiClient is the name of
 %%% a registered process, which is of type erlami_client. This will return the
 %%% pid() of the newly created process.
--spec start_link(ErlamiClient::string()) -> pid().
-start_link(ErlamiClient) ->
+-spec start_link(
+    ErlamiClient::string(), Connection::#erlami_connection{}
+) -> pid().
+start_link(ErlamiClient, #erlami_connection{}=Connection) ->
     spawn_link(
         fun() ->
-            read_salutation(ErlamiClient),
-            loop(ErlamiClient, [])
+            read_salutation(ErlamiClient, Connection),
+            loop(ErlamiClient, Connection, [])
         end
     ).
 
 %% @doc When an erlami_reader starts, it will read the first line coming in
 %% from asterisk and notify the erlami_client, so it be calidated. After reading
 %% the salutation, the main loop is entered.
--spec read_salutation(ErlamiClient::string()) -> none().
-read_salutation(ErlamiClient) ->
-    erlami_client:process_salutation(ErlamiClient, {salutation, wait_line()}),
-    loop(ErlamiClient, []).
+-spec read_salutation(
+    ErlamiClient::string(), Connection::#erlami_connection{}
+) -> none().
+read_salutation(ErlamiClient, Connection) ->
+    erlami_client:process_salutation(
+        ErlamiClient, {salutation, wait_line(Connection)}
+    ).
 
 %% @doc The main loop will read lines coming in from asterisk until an empty
 %% one is received, which should be the end of the message. The message is then
 %% unmarshalled and dispatched.
--spec loop(ErlamiClient::string(), Acc::string()) -> none().
-loop(ErlamiClient, Acc) ->
-    NewAcc = case wait_line() of
+-spec loop(
+    ErlamiClient::string(), Connection::#erlami_connection{},
+    Acc::string()
+) -> none().
+loop(ErlamiClient, Connection, Acc) ->
+    NewAcc = case wait_line(Connection) of
         "\r\n" ->
             UnmarshalledMsg = erlami_message:unmarshall(Acc),
             dispatch_message(
@@ -59,7 +68,7 @@ loop(ErlamiClient, Acc) ->
             [];
         Line -> string:concat(Acc, Line)
     end,
-    loop(ErlamiClient, NewAcc).
+    loop(ErlamiClient, Connection, NewAcc).
 
 %% @doc This function is used to select and dispatch a message by pattern
 %% matching on its type. Will notify the erlami_client of a response or an
@@ -78,12 +87,12 @@ dispatch_message(_ErlamiClient, _Message, _IsResponse, _IsEvent) ->
     erlang:error(unknown_message).
 
 %% @doc Reads a single line from asterisk.
--spec wait_line() -> string().
-wait_line() ->
-    receive
-        {_Transport, _Socket, Line} -> Line;
-        X ->
-            error_logger:error_msg("Got: ~p", [X]),
-            erlang:error(unknown_message)
+-spec wait_line(Connection::#erlami_connection{}) -> string().
+wait_line(#erlami_connection{read_line=Fun}=Connection) ->
+    case Fun(10) of
+        {ok, Line} -> Line;
+        {error, timeout} -> wait_line(Connection);
+        {error, Reason} ->
+            error_logger:error_msg("Got: ~p", [Reason]),
+            erlang:error(Reason)
     end.
-

@@ -29,19 +29,22 @@
 %% ------------------------------------------------------------------
 %% API Function Exports
 %% ------------------------------------------------------------------
--export([open/3, send/2, close/1]).
+-export([open/2, read_line/2, send/2, close/1]).
 
 %% @doc Will resolve and try to establish a connection to an asterisk box.
 -spec open(
-    Host::inet:hostname(), Port::inet:port_number(), Reader::pid()
+    Host::inet:hostname(), Port::inet:port_number()
 ) -> {ssl:sslsocket()}.
-open(Host, Port, Reader) ->
+open(Host, Port) ->
     {ok, #hostent{h_addr_list=Addresses}}
         = erlami_connection:resolve_host(Host),
-    {ok, Socket} = real_connect(Addresses, Port, Reader),
+    {ok, Socket} = real_connect(Addresses, Port),
     {ok, #erlami_connection{
         send = fun(Data) ->
             ?MODULE:send(Socket, Data)
+        end,
+        read_line = fun(Timeout) ->
+            ?MODULE:read_line(Socket, Timeout)
         end,
         close = fun() ->
             ?MODULE:close(Socket)
@@ -54,18 +57,16 @@ open(Host, Port, Reader) ->
 %% can be established or when failed after trying each one of the addresses
 %% found.
 -spec real_connect(
-    [Host::inet:hostname()], Port::inet:port_number(), Reader::pid()
+    [Host::inet:hostname()], Port::inet:port_number()
 ) -> {ok, ssl:sslsocket()}.
-real_connect([], _Port, _Reader) ->
+real_connect([], _Port) ->
     outofaddresses;
 
-real_connect([Address|Tail], Port, Reader) ->
-    case ssl:connect(Address, Port, [{packet, line}, {active, false}]) of
+real_connect([Address|Tail], Port) ->
+    case ssl:connect(Address, Port, [{active, false}, {packet, line}]) of
         {ok, Socket} ->
-            ok = ssl:controlling_process(Socket, Reader),
-            ok = ssl:setopts(Socket, [{active, true}]),
             {ok, Socket};
-        _ -> real_connect(Tail, Port, Reader)
+        _ -> real_connect(Tail, Port)
     end.
 
 %% @doc Used to send an action() via a tcp or tcp+ssl socket, selected by
@@ -78,3 +79,10 @@ send(Socket = {sslsocket, new_ssl, _Port}, Action) ->
 -spec close(Socket::ssl:sslsocket()|gen_tcp:socket()) -> ok.
 close({sslsocket, new_ssl, _Port}=Socket) ->
     ok = ssl:close(Socket).
+
+%% @doc Used to get 1 line from AMI server.
+-spec read_line(
+    Socket::gen_tcp:socket(), Timeout::integer()
+) -> {ok, Line::string()} | {error, Reason::term()}.
+read_line(Socket, Timeout) ->
+    ssl:recv(Socket, 0, Timeout).
