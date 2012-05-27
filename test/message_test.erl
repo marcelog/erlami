@@ -45,6 +45,10 @@ can_return_notfound_on_unknown_attribute(_SetupData) ->
     Action = erlami_message:new_action("Name"),
     ?_assertEqual(notfound, erlami_message:get(Action, "whatever")).
 
+can_return_notfound_on_unknown_variable(_SetupData) ->
+    Action = erlami_message:new_action("Name"),
+    ?_assertEqual(notfound, erlami_message:get_variable(Action, "whatever")).
+
 can_build_action_with_name_atts_vars(_SetupData) ->
     Action = erlami_message:new_action(
         "Name",
@@ -79,6 +83,7 @@ message_test_() ->
                 can_build_action_with_name_atts(SetupData),
                 can_build_action_with_name(SetupData),
                 can_return_notfound_on_unknown_attribute(SetupData),
+                can_return_notfound_on_unknown_variable(SetupData),
                 can_marshall(SetupData),
                 can_unmarshall(SetupData)
             ]}

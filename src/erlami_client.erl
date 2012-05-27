@@ -23,6 +23,7 @@
 -license("Apache License 2.0").
 -behaviour(gen_fsm).
 -define(SERVER, ?MODULE).
+-include_lib("erlami_connection.hrl").
 
 %% ------------------------------------------------------------------
 %% Types
@@ -47,7 +48,7 @@
 %% ------------------------------------------------------------------
 %% Types
 %% ------------------------------------------------------------------
--record(clientstate, {name, socket, serverinfo, listeners, actions}).
+-record(clientstate, {name, serverinfo, listeners, actions, connection}).
 
 %% ------------------------------------------------------------------
 %% API Function Exports
@@ -91,24 +92,27 @@ get_worker_name(AsteriskServerName) ->
 %% ------------------------------------------------------------------
 init({ServerName, WorkerName, ServerInfo}) ->
     Reader = erlami_reader:start_link(WorkerName),
-    Transport = erlami_server_config:extract_transport(ServerInfo),
+    ConnModule = erlami_server_config:extract_connection(ServerInfo),
     Host = erlami_server_config:extract_host(ServerInfo),
     Port = erlami_server_config:extract_port(ServerInfo),
-    {ok, Socket} = erlami_connection:connect(Transport, Host, Port, Reader),
+    {ok, Conn} = erlang:apply(
+        ConnModule, open, [Host, Port, Reader]
+    ),
     {ok, wait_salutation, #clientstate{
-        name=ServerName, socket=Socket, serverinfo=ServerInfo,
-        listeners=[], actions=[]
+        name=ServerName, serverinfo=ServerInfo,
+        listeners=[], actions=[], connection=Conn
 
     }}.
 
 handle_event(
     {register, ListenerDescriptor}, StateName, #clientstate{
-        name=Name, socket=Socket, serverinfo=ServerInfo,
-        listeners=Listeners, actions=Actions
+        name=Name, serverinfo=ServerInfo,
+        listeners=Listeners, actions=Actions, connection=Conn
     }) ->
     {next_state, StateName, #clientstate{
-        name=Name, socket=Socket, serverinfo=ServerInfo,
-        listeners=[ListenerDescriptor|Listeners], actions=Actions
+        name=Name, serverinfo=ServerInfo,
+        listeners=[ListenerDescriptor|Listeners], actions=Actions,
+        connection=Conn
     }};
 
 handle_event(_Event, StateName, State) ->
@@ -169,14 +173,18 @@ send_action(ErlamiClient, Action, Callback) ->
 %% for the asterisk salutation, which is the first line received.
 wait_salutation(
     {salutation, Salutation},
-    #clientstate{serverinfo=ServerInfo, socket=Socket}=State
+    #clientstate{
+        serverinfo=ServerInfo, connection=#erlami_connection{}=Conn
+    }=State
 ) ->
     ok = validate_salutation(Salutation),
     Username = erlami_server_config:extract_username(ServerInfo),
     Secret = erlami_server_config:extract_secret(ServerInfo),
-    ok = erlami_connection:send(
-        Socket, "login", [{"username", Username}, {"secret", Secret}]
+    Action = erlami_message:new_action(
+        "login", [{"username", Username}, {"secret", Secret}]
     ),
+    Fun = Conn#erlami_connection.send,
+    ok = Fun(Action),
     {next_state, wait_login_response, State}.
 
 %% @doc After sending the login action, we need to receive the
@@ -196,7 +204,7 @@ wait_login_response({response, Response}, #clientstate{}=State) ->
     clienteventevent()|clientresponseevent(), State
 ) -> {next_state, receiving, State}.
 receiving({response, Response}, #clientstate{
-    name=Name, serverinfo=ServerInfo, socket=Socket,
+    name=Name, serverinfo=ServerInfo, connection=Conn,
     actions=Actions, listeners=Listeners
 }) ->
     % Find the correct action information for this response
@@ -221,13 +229,13 @@ receiving({response, Response}, #clientstate{
     end,
     NewState = #clientstate{
         name=Name,
-        serverinfo=ServerInfo, socket=Socket,
+        serverinfo=ServerInfo, connection=Conn,
         actions=NewActions, listeners=Listeners
     },
     {next_state, receiving, NewState};
 
 receiving({event, Event}, #clientstate{
-    name=Name, serverinfo=ServerInfo, socket=Socket,
+    name=Name, serverinfo=ServerInfo, connection=Conn,
     actions=Actions, listeners=Listeners
 } = State) ->
     case erlami_message:get(Event, "actionid") of
@@ -259,7 +267,7 @@ receiving({event, Event}, #clientstate{
                     end,
                     NewState = #clientstate{
                         name=Name,
-                        serverinfo=ServerInfo, socket=Socket,
+                        serverinfo=ServerInfo, connection=Conn,
                         actions=NewActions, listeners=Listeners
                     },
                     {next_state, receiving, NewState}
@@ -267,19 +275,20 @@ receiving({event, Event}, #clientstate{
     end;
 
 receiving({action, Action, Callback}, #clientstate{
-    name=Name, serverinfo=ServerInfo, socket=Socket,
+    name=Name, serverinfo=ServerInfo, connection=#erlami_connection{}=Conn,
     actions=Actions, listeners=Listeners
 }) ->
     {ok, ActionId} = erlami_message:get(Action, "actionid"),
     NewState = #clientstate{
         name=Name,
-        serverinfo=ServerInfo, socket=Socket,
+        serverinfo=ServerInfo, connection=Conn,
         actions=lists:keystore(
             ActionId, 1, Actions, {ActionId, {Action, none, [], Callback}}
         ),
         listeners=Listeners
     },
-    ok = erlami_connection:send(Socket, Action),
+    Fun = Conn#erlami_connection.send,
+    ok = Fun(Action),
     {next_state, receiving, NewState}.
 
 %% ------------------------------------------------------------------

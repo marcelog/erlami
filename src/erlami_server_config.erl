@@ -23,18 +23,18 @@
 %% API Function Exports
 %% ------------------------------------------------------------------
 -export([
-    extract_host/1, extract_port/1, extract_transport/1,
+    extract_host/1, extract_port/1, extract_connection/1,
     extract_username/1, extract_secret/1
 ]).
 
 %% ------------------------------------------------------------------
 %% Types
 %% ------------------------------------------------------------------
--type transport() :: ssl | tcp.
+-type connection() :: module().
 -type username() :: string().
 -type secret() :: string().
 -type serverinfo() :: [serveroption()].
--type serveroption() :: {transport, transport()}
+-type serveroption() :: {connection, connection()}
     | {host, inet:hostname()}
     | {port, inet:port_number()}
     | {username, username()}
@@ -51,18 +51,18 @@ extract_host(ServerInfo) ->
 extract_port(ServerInfo) ->
     extract_key(port, ServerInfo).
 
-%% @doc Returns the transport part of a server configuration.
--spec extract_transport(ServerInfo::serverinfo()) -> transport().
-extract_transport(ServerInfo) ->
-    extract_key(transport, ServerInfo).
+%% @doc Returns the connection part of a server configuration.
+-spec extract_connection(ServerInfo::serverinfo()) -> connection().
+extract_connection(ServerInfo) ->
+    extract_key(connection, ServerInfo).
 
 %% @doc Returns the username part of a server configuration.
--spec extract_username(ServerInfo::serverinfo()) -> transport().
+-spec extract_username(ServerInfo::serverinfo()) -> username().
 extract_username(ServerInfo) ->
     extract_key(username, ServerInfo).
 
 %% @doc Returns the secret part of a server configuration.
--spec extract_secret(ServerInfo::serverinfo()) -> transport().
+-spec extract_secret(ServerInfo::serverinfo()) -> secret().
 extract_secret(ServerInfo) ->
     extract_key(secret, ServerInfo).
 

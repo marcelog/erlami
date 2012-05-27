@@ -2,7 +2,7 @@
 -include_lib("eunit/include/eunit.hrl").
 
 start() ->
-    [{transport, ssl},
+    [{connection, ssl},
     {host, "127.0.0.1"},
     {port, 5039},
     {username, "username"},
@@ -17,8 +17,8 @@ can_get_host(SetupData) ->
 can_get_port(SetupData) ->
     ?_assertEqual(5039, erlami_server_config:extract_port(SetupData)).
 
-can_get_transport(SetupData) ->
-    ?_assertEqual(ssl, erlami_server_config:extract_transport(SetupData)).
+can_get_connection(SetupData) ->
+    ?_assertEqual(ssl, erlami_server_config:extract_connection(SetupData)).
 
 can_get_username(SetupData) ->
     ?_assertEqual("username", erlami_server_config:extract_username(SetupData)).
@@ -34,7 +34,7 @@ server_config_test_() ->
             {inparallel, [
                 can_get_host(SetupData),
                 can_get_port(SetupData),
-                can_get_transport(SetupData),
+                can_get_connection(SetupData),
                 can_get_username(SetupData),
                 can_get_secret(SetupData)
             ]}
