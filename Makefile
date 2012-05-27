@@ -1,7 +1,6 @@
 NAME=erlami
 
-all: compile release
-	./rebar compile
+all: compile tests release
 
 compile:
 	./rebar compile
@@ -21,5 +20,8 @@ run:
 
 runconsole:
 	rel/${NAME}/bin/${NAME} console
+
+tests:
+	./rebar eunit skip_deps=true
 
 alldev: clean all runconsole
