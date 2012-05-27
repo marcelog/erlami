@@ -28,13 +28,13 @@
 %% ------------------------------------------------------------------
 %% API Function Exports
 %% ------------------------------------------------------------------
--export([open/2, read_line/2, send/2, close/1]).
+-export([open/1, read_line/2, send/2, close/1]).
 
 %% @doc Will resolve and try to establish a connection to an asterisk box.
--spec open(
-    Host::inet:hostname(), Port::inet:port_number()
-) -> {ok, gen_tcp:socket()}.
-open(Host, Port) ->
+-spec open(Options::[{Key::atom(),Value::term()}]) -> {gen_tcp:socket()}.
+open(Options) ->
+    {host, Host} = lists:keyfind(host, 1, Options),
+    {port, Port} = lists:keyfind(port, 1, Options),
     {ok, #hostent{h_addr_list=Addresses}}
         = erlami_connection:resolve_host(Host),
     {ok, Socket} = real_connect(Addresses, Port),

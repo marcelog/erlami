@@ -19,16 +19,16 @@ See rel/files/sys.config for an example configuration. Here's a snippet:
 {erlami, [
     {servers, [
         {asterisk1, [                 % The server name is an atom
-            {connection, erlami_tcp_connection},
-            {host, "1.1.1.1"},
-            {port, 5038},
+            {connection, {erlami_tcp_connection, [
+                {host, "1.1.1.1"}, {port, 5038}
+            ]}},
             {username, "username"},
             {secret, "secret"}
         ]},
         {asterisk2, [
-            {connection, erlami_ssl_connection},
-            {host, "2.2.2.2"},
-            {port, 5039},
+            {connection, {erlami_tcp_connection, [
+                {host, "2.2.2.2"}, {port, 5039}
+            ]}},
             {username, "username"},
             {secret, "secret"}
         ]}

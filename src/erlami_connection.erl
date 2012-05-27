@@ -24,7 +24,7 @@
 -export([resolve_host/1]).
 
 behaviour_info(callbacks) ->
-    [{open,2}, {read_line,2}, {send,2}, {close,1}];
+    [{open,1}, {read_line,2}, {send,2}, {close,1}];
 
 behaviour_info(_Other) ->
     undefined.
