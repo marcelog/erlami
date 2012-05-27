@@ -48,7 +48,7 @@ list_commands(ServerName) ->
 
 listen_to(ServerName) ->
     erlami_client:register_listener(
-        ServerName, {fun event_callback/2, fun(_) -> true end}
+        ServerName, {fun event_callback/2, fun(Event) -> {ok, Value} = erlami_message:get(Event, "event"), Value =/= "DTMF" end}
     ).
 
 event_callback(ServerName, Event) ->
@@ -60,5 +60,10 @@ event_callback(ServerName, Event) ->
 response_callback(Response, Events) ->
     io:format("*****************~n"),
     io:format("response: ~p~n", [erlami_message:to_list(Response)]),
-    io:format("events: ~p~n", [erlami_message:to_list(Events)]),
+    lists:foreach(
+        fun(Event) ->
+            io:format("Event: ~p", [erlami_message:to_list(Event)])
+        end,
+        Events
+    ),
     io:format("*****************~n").
