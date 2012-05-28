@@ -99,7 +99,6 @@ init({ServerName, WorkerName, ServerInfo}) ->
     {ok, wait_salutation, #clientstate{
         name=ServerName, serverinfo=ServerInfo,
         listeners=[], actions=[], connection=Conn
-
     }}.
 
 handle_event(
