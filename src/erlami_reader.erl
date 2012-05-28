@@ -91,7 +91,13 @@ dispatch_message(_ErlamiClient, _Message, _IsResponse, _IsEvent) ->
 wait_line(#erlami_connection{read_line=Fun}=Connection) ->
     case Fun(10) of
         {ok, Line} -> Line;
-        {error, timeout} -> wait_line(Connection);
+        {error, timeout} ->
+            receive
+                {close} -> erlang:exit(shutdown)
+            after 10 ->
+                ok
+            end,
+            wait_line(Connection);
         {error, Reason} ->
             error_logger:error_msg("Got: ~p", [Reason]),
             erlang:error(Reason)
