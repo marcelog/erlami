@@ -24,9 +24,9 @@
 -export([start_link/2]).
 -include_lib("erlami_connection.hrl").
 
-%%% @doc Starts an erlami_reader. The argument ErlamiClient is the name of
-%%% a registered process, which is of type erlami_client. This will return the
-%%% pid() of the newly created process.
+%% @doc Starts an erlami_reader. The argument ErlamiClient is the name of
+%% a registered process, which is of type erlami_client. This will return the
+%% pid() of the newly created process.
 -spec start_link(
     ErlamiClient::string(), Connection::#erlami_connection{}
 ) -> pid().
