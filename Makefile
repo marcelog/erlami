@@ -1,12 +1,20 @@
-NAME=erlami
+PWD=$(shell pwd)
+NAME=$(shell basename ${PWD})
 
-all: compile tests release
+all: clean compile edoc release
+	./rebar compile
+
+edoc:
+	./rebar doc
 
 compile:
 	./rebar compile
 
-release:
-	cd rel && ../rebar generate && cd -
+test: compile
+	./rebar eunit skip_deps=true
+
+release: test
+	(cd rel && ../rebar generate && cd -)
 
 node:
 	(cd rel && ../rebar create-node nodeid=${NAME} && cd -)
@@ -20,8 +28,5 @@ run:
 
 runconsole:
 	rel/${NAME}/bin/${NAME} console
-
-tests:
-	./rebar eunit skip_deps=true
 
 alldev: clean all runconsole

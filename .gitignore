@@ -1,4 +1,9 @@
 .eunit
-ebin/*
+deps
+ebin
 rel/erlami
-
+rel/erl_crash.dump
+doc/*.html
+doc/*.png
+doc/*.css
+doc/edoc-info
