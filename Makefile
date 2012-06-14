@@ -1,5 +1,5 @@
-PWD=$(shell pwd)
-NAME=$(shell basename ${PWD})
+CWD=$(shell pwd)
+NAME=$(shell basename ${CWD})
 
 all: clean compile edoc release
 	./rebar compile
