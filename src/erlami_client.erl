@@ -78,19 +78,19 @@
 ) -> ok.
 start_link(ServerName, WorkerName, ServerInfo) ->
     gen_fsm:start_link(
-        {local, WorkerName}, ?MODULE, {ServerName, WorkerName, ServerInfo}, []
+        {local, WorkerName}, ?MODULE, [ServerName, WorkerName, ServerInfo], []
     ).
 
 %% @doc Returns a worker name (erlagi_client) based on an asterisk server
 %% name.
 -spec get_worker_name(AsteriskServerName::atom()) -> atom().
 get_worker_name(AsteriskServerName) ->
-    list_to_atom(lists:concat([?MODULE, AsteriskServerName])).
+    list_to_atom(lists:concat([?MODULE, "_", AsteriskServerName])).
 
 %% ------------------------------------------------------------------
 %% gen_fsm Function Definitions
 %% ------------------------------------------------------------------
-init({ServerName, WorkerName, ServerInfo}) ->
+init([ServerName, WorkerName, ServerInfo]) ->
     {ConnModule, ConnOptions} = erlami_server_config:extract_connection(
         ServerInfo
     ),
@@ -174,6 +174,7 @@ wait_salutation(
         serverinfo=ServerInfo, connection=#erlami_connection{}=Conn
     }=State
 ) ->
+    lager:debug("Got Salutation: ~p", [Salutation]),
     ok = validate_salutation(Salutation),
     Username = erlami_server_config:extract_username(ServerInfo),
     Secret = erlami_server_config:extract_secret(ServerInfo),

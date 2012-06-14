@@ -33,7 +33,9 @@
 start_link(ErlamiClient, #erlami_connection{}=Connection) ->
     spawn_link(
         fun() ->
+            lager:debug("Waiting salutation"),
             read_salutation(ErlamiClient, Connection),
+            lager:debug("Entering loop"),
             loop(ErlamiClient, Connection, [])
         end
     ).
@@ -45,9 +47,9 @@ start_link(ErlamiClient, #erlami_connection{}=Connection) ->
     ErlamiClient::string(), Connection::#erlami_connection{}
 ) -> none().
 read_salutation(ErlamiClient, Connection) ->
-    erlami_client:process_salutation(
-        ErlamiClient, {salutation, wait_line(Connection)}
-    ).
+    Line = wait_line(Connection),
+    lager:debug("Got as salutation: ~p", [Line]),
+    erlami_client:process_salutation(ErlamiClient, {salutation, Line}).
 
 %% @doc The main loop will read lines coming in from asterisk until an empty
 %% one is received, which should be the end of the message. The message is then
@@ -63,7 +65,8 @@ loop(ErlamiClient, Connection, Acc) ->
             dispatch_message(
                 ErlamiClient, UnmarshalledMsg,
                 erlami_message:is_response(UnmarshalledMsg),
-                erlami_message:is_event(UnmarshalledMsg)
+                erlami_message:is_event(UnmarshalledMsg),
+                Acc
             ),
             [];
         Line -> string:concat(Acc, Line)
@@ -75,16 +78,19 @@ loop(ErlamiClient, Connection, Acc) ->
 %% event.
 -spec dispatch_message(
     ErlamiClient::string(), Message::erlami_message:message(),
-    IsResponse::boolean(), IsEvent::boolean()
+    IsResponse::boolean(), IsEvent::boolean(), Original::string()
 ) -> none().
-dispatch_message(ErlamiClient, Response, true, false) ->
+dispatch_message(ErlamiClient, Response, true, false, _Original) ->
     erlami_client:process_response(ErlamiClient, {response, Response});
 
-dispatch_message(ErlamiClient, Event, false, true) ->
+dispatch_message(ErlamiClient, Event, false, true, _Original) ->
     erlami_client:process_event(ErlamiClient, {event, Event});
 
-dispatch_message(_ErlamiClient, _Message, _IsResponse, _IsEvent) ->
-    erlang:error(unknown_message).
+dispatch_message(_ErlamiClient, Message, _IsResponse, _IsEvent, Original) ->
+    lager:error(
+        "Unknown message: ~p -> ~p", [Original, erlami_message:to_list(Message)]
+    ).
+    %erlang:error(unknown_message).
 
 %% @doc Reads a single line from asterisk.
 -spec wait_line(Connection::#erlami_connection{}) -> string().

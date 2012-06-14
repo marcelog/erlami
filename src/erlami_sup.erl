@@ -21,7 +21,7 @@
 -behaviour(supervisor).
 
 %% API
--export([start_link/1]).
+-export([start_link/0, start_child/3]).
 
 %% Supervisor callbacks
 -export([init/1]).
@@ -30,27 +30,28 @@
 -define(
     CHILD(Name, Args),
     {Name,
-        {erlami_client, start_link, Args},
-        permanent, 5000, worker, [?MODULE]
+        {erlami_sup_client, start_link, Args},
+        permanent, infinity, supervisor, [?MODULE]
     }
 ).
 
 %% ===================================================================
 %% API functions
 %% ===================================================================
-start_link(AsteriskServers) ->
-    supervisor:start_link({local, ?MODULE}, ?MODULE, AsteriskServers).
+start_link() ->
+    supervisor:start_link({local, ?MODULE}, ?MODULE, []).
+
+start_child(ServerName, WorkerName, ServerInfo) ->
+    supervisor:start_child(?MODULE, [ServerName, WorkerName, ServerInfo]).
 
 %% ===================================================================
 %% Supervisor callbacks
 %% ===================================================================
-init(AsteriskServers) ->
-    Children = lists:map(
-        fun({ServerName, ServerInfo}) ->
-            WorkerName = erlami_client:get_worker_name(ServerName),
-            ?CHILD(ServerName, [ServerName, WorkerName, ServerInfo])
-        end,
-        AsteriskServers
-    ),
-    {ok, { {one_for_one, 5, 10}, Children} }.
-
+init([]) ->
+    Client = {erlami_client,
+        {erlami_client, start_link, []},
+        permanent, brutal_kill, worker, [erlami_client]
+    },
+    Children = [Client],
+    RestartStrategy = {simple_one_for_one, 0, 1},
+    {ok, {RestartStrategy, Children}}.

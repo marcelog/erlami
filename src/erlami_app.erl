@@ -28,7 +28,16 @@
 %% ===================================================================
 start(_StartType, _StartArgs) ->
     {ok, AsteriskServers} = application:get_env(servers),
-    erlami_sup:start_link(AsteriskServers).
+    {ok, SupPid} = erlami_sup:start_link(),
+    lists:foreach(
+        fun({ServerName, ServerInfo}) ->
+            WorkerName = erlami_client:get_worker_name(ServerName),
+            lager:debug("Starting client supervisor: ~p", [WorkerName]),
+            erlami_sup:start_child(ServerName, WorkerName, ServerInfo)
+        end,
+        AsteriskServers
+    ),
+    {ok, SupPid}.
 
 stop(_State) ->
     ok.
