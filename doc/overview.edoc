@@ -1,5 +1,5 @@
 @author Marcelo Gornstein <marcelog@gmail.com>
 @copyright Marcelo Gornstein
-@title ehttp Application
+@title erlami Application
 @doc erlami is both an OTP library and application designed to interact with Asterisk via the Asterisk Manager Interface (AMI).
 
