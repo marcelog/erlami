@@ -13,7 +13,7 @@ compile:
 test: compile
 	./rebar eunit skip_deps=true
 
-release: test
+release: 
 	(cd rel && ../rebar generate && cd -)
 
 node:
