@@ -33,8 +33,8 @@
 -type action() :: message().
 -type response() :: message().
 -type event() :: message().
--type attributes() :: dict().
--type variables() :: dict().
+-type attributes() :: dict:dict().
+-type variables() :: dict:dict().
 -type rawattribute() :: {Key::string(), Value::string()}.
 -type rawattributes() :: [rawattribute()].
 -type rawvariable() :: {Key::string(), Value::string()}.
